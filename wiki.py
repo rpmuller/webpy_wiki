@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import web
-from markdown import Markdown
-import os, time, re, cgi
+import markdown
+import os, time, re, html
 
 # For debugging use only
 web.internalerror = web.debugerror
@@ -20,8 +20,8 @@ def list(*items):
 
 urls = (
     '/', 'WikiPages',
-    '/page/([a-zA-Z_]+)', 'WikiPage',
-    '/editor/([a-zA-Z_]+)', 'WikiEditor'
+    '/page/([a-zA-Z0-9_]+.md)', 'WikiPage',
+    '/editor/([a-zA-Z0-9_]+.md)', 'WikiEditor'
 )
 
 app = web.application(urls,globals())
@@ -36,12 +36,12 @@ class WikiPages:
 		wikipages = os.listdir(wikidir)
 		lines = ["<html><head><title>wiki pages</title></head><body>",
 				"<h1>Wiki Pages:</h1><ul>"]
-		print(wikipages)
 		for wikipage in wikipages:
 			if os.path.isfile(os.path.join(wikidir, wikipage)) and t.match(wikipage):
 				lines.append("<li><a href=\"%(path)s/page/%(page)s\">%(page)s</a></li>" 
 								% {'path':web.ctx.home+web.ctx.path[1:],'page':wikipage})
 		lines.append( "</ul></body></html>")
+		print(lines)
 		return "\n".join(lines)
 
 class WikiPage:
@@ -59,7 +59,7 @@ class WikiPage:
 			lines.append( "[<a href=\"%s\">Edit</a>] " 
 					% (web.ctx.home+'/editor/'+name))
 			lines.append( "</p>")
-			lines.append( Markdown(open(page).read()))
+			lines.append( markdown.markdown(open(page).read()))
 			lines.append( "</body></html>")
 		else:
 			web.ctx.status = '404 Not Found'
@@ -70,6 +70,7 @@ class WikiPage:
 	
 	def POST(self,name):
 		page = os.path.join(wikidir,name)
+		print(page)
 		if os.path.exists(page):
 			newpage = page+'.'+time.strftime("%Y%m%d%H%M%S", time.gmtime())
 			os.rename(page,newpage)
@@ -90,9 +91,11 @@ class WikiEditor:
 			% (web.ctx.home+'/page/'+name))
 		lines.append( "<textarea name=\"page\" cols=\"100\" rows=\"20\">")
 
+		print(lines)
 		page = os.path.join(wikidir,name)
+		print(page)
 		if os.path.exists(page):
-			lines.append( cgi.escape(open(page).read()))
+			lines.append( html.escape(open(page).read()))
 		lines.append( "</textarea><br><input type=\"submit\" value=\"Update\"></form>")
 		lines.append( "<p><a href=\"http://daringfireball.net/projects/markdown/syntax\">Markdown Syntax</a></p>")
 
